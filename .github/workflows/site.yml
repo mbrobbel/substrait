@@ -1,10 +1,11 @@
 name: Site
 
 on:
+  pull_request:
   schedule:
     - cron: "0 0 * * 0"
   push:
-    branches: [main]
+    branches: [test-local]
     paths:
       - "site/**"
       - "extensions/**"
@@ -13,7 +14,7 @@ jobs:
   site:
     name: Build & Deploy Website
     runs-on: ubuntu-latest
-    if: ${{ github.repository == 'substrait-io/substrait' }}
+    if: ${{ github.repository == 'mbrobbel/substrait' }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup Python
@@ -41,7 +42,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api graphql -f query='{
-            repository(owner: "substrait-io", name: "substrait") {
+            repository(owner: "mbrobbel", name: "substrait") {
               collaborators {
                 edges {
                   permission
@@ -71,24 +72,22 @@ jobs:
             | map({
                 "Name":.name,
                 "Company":.company
-              })' collaborators.json
-          | yq -P > site/data/smc.yaml
+              })' collaborators.json | yq -P > site/data/smc.yaml
       - name: committers.yaml
         run: |
           jq 'map(select(.permission == "WRITE"))
             | map({
                 "Name":.name,
                 "Company":.company
-              })' collaborators.json
-          | yq -P > site/data/committers.yaml
+              })' collaborators.json | yq -P > site/data/committers.yaml
       - name: Generate Static Site
         run: mkdocs build
         working-directory: ./site
-      - name: Deploy Static Site to GitHub
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          external_repository: substrait-io/substrait.io
-          publish_branch: main
-          deploy_key: ${{ secrets.SUBSTRAIT_SITE_DEPLOY_KEY }}
-          publish_dir: ./site/site
-          cname: substrait.io
+      # - name: Deploy Static Site to GitHub
+      #   uses: peaceiris/actions-gh-pages@v3
+      #   with:
+      #     external_repository: substrait-io/substrait.io
+      #     publish_branch: main
+      #     deploy_key: ${{ secrets.SUBSTRAIT_SITE_DEPLOY_KEY }}
+      #     publish_dir: ./site/site
+      #     cname: substrait.io
